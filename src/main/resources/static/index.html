@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>图片识别</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=width-device,initial-scale=1.0,user-scalable=no" />
+</head>
+<style type="text/css">
+.context{
+    width: 80%;
+    font-family:"SimSun";
+    font-size: 13px;
+    line-height: 25px;
+    border: 1px solid #575757;
+    padding: 0 15px 0 15px;
+    margin: 20px 0 0 10px;
+    min-height:100px;
+}
+#img{
+	max-width:100%;
+}
+.btnGroup{
+	margin:10px;
+}
+.context>p{
+	border-bottom:1px solid #eee;
+	margin: 0;
+    line-height: 30px;
+}
+</style>
+
+<body>
+<h3>选择要识别的图片</h3>
+<div>
+	<input id="imgFile" type="file" accept="image/*" name="imgFile" onChange="fileBtn(event)">
+</div>
+<h3>原图</h3>
+<div>
+<img id="img" src=""/>
+</div>
+<h3>识别内容</h3>
+<div class="context">
+	
+</div>
+<div class="btnGroup">
+	<input type="button" value="复制选中部分" id="copyPart"/>
+	<input type="button" value="全部复制" id="copyAll"/>
+</div>
+
+<button  class = "btn"  data-clipboard-action = "copy"  data-clipboard-text="" style="display:none">
+    剪切到剪贴板
+</button>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="layer/layer.js"></script>
+<script type="text/javascript" src="clipboard/clipboard.min.js"></script>
+<script type="text/javascript">	
+function fileBtn(e){
+	var file = document.getElementById("imgFile");
+	var imgBase64 = "";
+	var reader = new FileReader();
+	$(".context").html("");
+    reader.onload = (function (file) {
+        return function (e) {
+           imgBase64 = this.result;
+           $("#img").attr("src",imgBase64);
+           var data = imgBase64.split(',')[1];
+           var layerMsg = layer.msg("玩命识别中....", {
+        	    title: false,
+        	    time: 200000,
+        	    shade:[0.8, '#393D49'],
+        	    icon: 16 // 加载图标
+        	});
+           $.post("api/contextArr",{"imgBase64":data},function(data){
+        	   $.each(data,function(index,el){
+        		   $(".context").append('<p class="text">' + el + '</p>');
+        	   });
+        	   layer.closeAll();
+           });
+        };
+    })(file.files[0]);
+    reader.readAsDataURL(file.files[0]);
+}
+$(".context").on("click",".text",function(e){
+	if(this.style.backgroundColor != 'lightblue'){
+		$(this).css("background","lightblue");
+		$(this).attr("data-select","true");
+	} else {
+		$(this).css("background","");
+		$(this).attr("data-select","false");
+	}
+});
+$("#copyPart").click(function(){
+	 var item = $(".context>p");
+	 var count = item.length;
+	 var result = "";
+	 $.each(item,function(index,el){
+		 var isSelect = item.eq(index).attr("data-select");
+		 if(isSelect == 'true'){
+			 result += item.eq(index).text() + '\r\n';
+		 }
+	 });
+	 result = result.substring(0,result.length-2);
+	 $(".btn").attr("data-clipboard-text",result);
+	 $(".btn").click();
+	 layer.msg("已复制到剪切板");
+});
+$("#copyAll").click(function(){
+	var item = $(".context>p");
+	 var count = item.length;
+	 var result = "";
+	 $.each(item,function(index,el){
+		result += item.eq(index).text() + '\r\n';
+	 });
+	 result = result.substring(0,result.length-2);
+	 $(".btn").attr("data-clipboard-text",result);
+	 $(".btn").click();
+	 layer.msg("已复制到剪切板");
+});
+var clipboard = new ClipboardJS('.btn');
+</script>
+</body>
+</html>
